@@ -1,0 +1,330 @@
+*&---------------------------------------------------------------------*
+*& Alterar Cliente
+*&---------------------------------------------------------------------*
+FORM alterar_cliente.
+
+  SELECT SINGLE *
+      INTO gs_cliente
+      FROM zslv_cliente
+      WHERE cpf_cliente = gs_cliente-cpf_cliente.
+
+  IF sy-subrc <> 0.
+
+    CALL FUNCTION 'POPUP_TO_INFORM'
+      EXPORTING
+        titel = 'ERRO'
+        txt1  = 'CLIENTE NÃO ENCONTRADO.'
+        txt2  = 'DADOS INCORRETOS.'.
+    CLEAR gs_cliente-cpf_cliente.
+  ELSE.
+    CALL SCREEN 9001.
+
+  ENDIF.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Salvar Cliente
+*&---------------------------------------------------------------------*
+FORM salvar_cliente.
+
+  gs_cliente-erdat = sy-datum.
+  gs_cliente-erzet = sy-uzeit.
+
+  INSERT zslv_cliente FROM gs_cliente.
+
+  IF sy-subrc = 0.
+
+    CALL FUNCTION 'POPUP_TO_INFORM'
+      EXPORTING
+        titel = 'NOVO CLIENTE'
+        txt1  = 'NOVO CLIENTE CADASTRADO'
+        txt2  = 'COM SUCESSO.'.
+  ENDIF.
+
+  CLEAR gs_cliente-nome_cliente.
+  CLEAR gs_cliente-email_cliente.
+  CLEAR gs_cliente-cpf_cliente.
+  CLEAR gs_cliente-telefone_cliente.
+  CLEAR gd_cpf_cliente.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Salvar Alteração do Cliente
+*&---------------------------------------------------------------------*
+FORM salvar_alteracao_cliente.
+
+  MODIFY zslv_cliente FROM gs_cliente.
+
+  IF sy-subrc = 0.
+    CALL FUNCTION 'POPUP_TO_INFORM'
+      EXPORTING
+        titel = 'ALTERAÇÃO DO CLIENTE'
+        txt1  = 'DADOS DO CLIENTE ALTERADOS'
+        txt2  = 'COM SUCESSO.'.
+
+    CLEAR gs_cliente-cpf_cliente.
+    CLEAR gs_cliente-nome_cliente.
+    CLEAR gs_cliente-email_cliente.
+    CLEAR gs_cliente-telefone_cliente.
+    CLEAR gd_cpf_cliente.
+    CALL SCREEN 9001.
+  ENDIF.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Consultar Cliente
+*&---------------------------------------------------------------------*
+FORM consultar_cliente.
+
+  SELECT SINGLE *
+      INTO gs_cliente
+      FROM zslv_cliente
+      WHERE cpf_cliente = gs_cliente-cpf_cliente.
+
+  IF sy-subrc <> 0.
+
+    CALL FUNCTION 'POPUP_TO_INFORM'
+      EXPORTING
+        titel = 'ERRO'
+        txt1  = 'CLIENTE NÃO ENCONTRADO.'
+        txt2  = 'DADOS INCORRETOS.'.
+
+    CLEAR gd_cpf_cliente.
+
+  ELSE.
+    DATA: vl_dtvazia TYPE erdat.
+
+    SELECT * UP TO 1 ROWS
+      INTO gs_locacao
+      FROM zslv_locacao
+      WHERE cpf_cliente  = gs_cliente-cpf_cliente
+        AND dt_devolucao = vl_dtvazia.
+    ENDSELECT.
+    IF sy-subrc = 0.
+      vg_alugado = abap_true.
+      gs_veiculo-placa_veiculo = gs_locacao-placa_veiculo.
+
+      SELECT * UP TO 1 ROWS
+        INTO gs_veiculo
+        FROM zslv_veiculo
+        WHERE placa_veiculo  = gs_veiculo-placa_veiculo.
+
+      ENDSELECT.
+    ELSE.
+      vg_alugado = abap_false.
+    ENDIF.
+
+    CALL SCREEN 9003.
+  ENDIF.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Salvar Veículo
+*&---------------------------------------------------------------------*
+
+FORM salvar_veiculo.
+
+  gs_veiculo-erdat = sy-datum.
+  gs_veiculo-erzet = sy-uzeit.
+
+  INSERT zslv_veiculo FROM gs_veiculo.
+
+  IF sy-subrc = 0.
+
+    CALL FUNCTION 'POPUP_TO_INFORM'
+      EXPORTING
+        titel = 'NOVO VEÍCULO'
+        txt1  = 'NOVO VEÍCULO CADASTRADO'
+        txt2  = 'COM SUCESSO.'.
+  ELSE.
+    CALL FUNCTION 'POPUP_TO_INFORM'
+      EXPORTING
+        titel = 'ERRO'
+        txt1  = 'VEÍCULO NÃO PODE SER CADASTRADOS.'
+        txt2  = 'DADOS INCORRETOS.'.
+
+  ENDIF.
+
+  CLEAR gs_veiculo-modelo_veiculo.
+  CLEAR gs_veiculo-placa_veiculo.
+  CLEAR gs_veiculo-ano_veiculo.
+  CLEAR gs_veiculo-tipo_veiculo.
+  CLEAR gs_veiculo-status_veiculo.
+  CLEAR gs_veiculo-diaria.
+  CLEAR gd_placa_veiculo.
+  CALL SCREEN 9004.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Salvar Alteração do Veículo
+*&---------------------------------------------------------------------*
+FORM salvar_alteracao_veiculo.
+
+  MODIFY zslv_veiculo FROM gs_veiculo.
+
+  IF sy-subrc = 0.
+    CALL FUNCTION 'POPUP_TO_INFORM'
+      EXPORTING
+        titel = 'ALTERAÇÃO DO VEÍCULO'
+        txt1  = 'DADOS DO VEÍCULO ALTERADO'
+        txt2  = 'COM SUCESSO.'.
+
+    CLEAR gs_veiculo-placa_veiculo.
+    CLEAR gs_veiculo-modelo_veiculo.
+    CLEAR gs_veiculo-ano_veiculo..
+    CLEAR gs_veiculo-tipo_veiculo.
+    CLEAR gs_veiculo-status_veiculo..
+    CLEAR gs_veiculo-diaria.
+    CLEAR gd_placa_veiculo.
+    CALL SCREEN 9004.
+  ENDIF.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Consultar Veículo
+*&---------------------------------------------------------------------*
+FORM consultar_veiculo.
+
+  SELECT SINGLE *
+      INTO gs_veiculo
+      FROM zslv_veiculo
+      WHERE placa_veiculo = gs_veiculo-placa_veiculo.
+
+  IF sy-subrc <> 0.
+
+    CALL FUNCTION 'POPUP_TO_INFORM'
+      EXPORTING
+        titel = 'ERRO'
+        txt1  = 'VEÍCULO NÃO ENCONTRADO.'
+        txt2  = 'DADOS INCORRETOS.'.
+    CLEAR gd_placa_veiculo.
+
+  ELSE.
+    DATA: vl_dtvazia TYPE erdat.
+
+    SELECT * UP TO 1 ROWS
+      INTO gs_locacao
+      FROM zslv_locacao
+      WHERE placa_veiculo  = gs_veiculo-placa_veiculo
+        AND dt_devolucao = vl_dtvazia.
+    ENDSELECT.
+    IF sy-subrc = 0.
+      gs_cliente-cpf_cliente = gs_locacao-cpf_cliente.
+
+      SELECT * UP TO 1 ROWS
+        INTO gs_cliente
+        FROM zslv_cliente
+        WHERE cpf_cliente  = gs_cliente-cpf_cliente.
+      ENDSELECT.
+    ENDIF.
+  ENDIF.
+  CALL SCREEN 9006.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Alterar Veículo
+*&---------------------------------------------------------------------*
+FORM alterar_veiculo.
+
+  SELECT SINGLE *
+      INTO gs_veiculo
+      FROM zslv_veiculo
+      WHERE placa_veiculo = gs_veiculo-placa_veiculo.
+
+  IF sy-subrc <> 0.
+
+    CALL FUNCTION 'POPUP_TO_INFORM'
+      EXPORTING
+        titel = 'ERRO'
+        txt1  = 'VEÍCULO NÃO ENCONTRADO.'
+        txt2  = 'DADOS INCORRETOS.'.
+    CLEAR gs_veiculo-placa_veiculo.
+  ELSE.
+    CALL SCREEN 9004.
+
+  ENDIF.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Locação do Veículo
+*&---------------------------------------------------------------------*
+FORM salvar_locacao.
+
+  IF gs_locacao-cpf_cliente   IS INITIAL OR
+     gs_locacao-placa_veiculo IS INITIAL OR
+     gs_locacao-dt_prev_dev   IS INITIAL.
+
+    SET CURSOR FIELD 'GS_LOCACAO-DT_PREV_DEV'.
+    MESSAGE w001(00) WITH 'ERRO: Preencher TODOS os campos obrigatórios'.
+
+  ELSE.
+    INSERT zslv_locacao FROM gs_locacao.
+
+    IF sy-subrc = 0.
+      UPDATE zslv_veiculo SET status_veiculo = 'A'
+      WHERE placa_veiculo = gs_locacao-placa_veiculo.
+      COMMIT WORK.
+
+      CALL FUNCTION 'POPUP_TO_INFORM'
+        EXPORTING
+          titel = 'NOVA LOCAÇAO'
+          txt1  = 'LOCAÇÃO CADASTRADA'
+          txt2  = 'COM SUCESSO.'.
+    ENDIF.
+
+    CLEAR gs_locacao-cod_locacao.
+    CLEAR gs_locacao-dt_locacao.
+    CLEAR gs_locacao-cpf_cliente.
+    CLEAR gs_cliente-nome_cliente.
+    CLEAR gs_cliente-email_cliente.
+    CLEAR gs_cliente-telefone_cliente.
+    CLEAR gs_locacao-placa_veiculo.
+    CLEAR gs_veiculo-ano_veiculo.
+    CLEAR gs_veiculo-modelo_veiculo.
+    CLEAR gs_veiculo-tipo_veiculo.
+    CLEAR gs_veiculo-diaria.
+    CLEAR gs_locacao-dt_prev_dev.
+    CLEAR gs_locacao-valor_pago.
+    CALL SCREEN 9000.
+  ENDIF.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Devolução do Veículo
+*&---------------------------------------------------------------------*
+FORM devolucao.
+
+  IF sy-subrc = 0.
+    UPDATE zslv_locacao SET dt_devolucao = gs_locacao-dt_devolucao
+    WHERE cod_locacao = gs_locacao-cod_locacao.
+
+    UPDATE zslv_veiculo SET status_veiculo = 'D'
+    WHERE placa_veiculo = gs_locacao-placa_veiculo.
+    COMMIT WORK.
+
+    CLEAR gs_locacao-cod_locacao.
+    CLEAR gs_locacao-dt_locacao.
+    CLEAR gs_locacao-cpf_cliente.
+    CLEAR gs_cliente-nome_cliente.
+    CLEAR gs_cliente-email_cliente.
+    CLEAR gs_cliente-telefone_cliente.
+    CLEAR gs_locacao-placa_veiculo.
+    CLEAR gs_veiculo-ano_veiculo.
+    CLEAR gs_veiculo-modelo_veiculo.
+    CLEAR gs_veiculo-tipo_veiculo.
+    CLEAR gs_veiculo-diaria.
+    CLEAR gs_locacao-dt_prev_dev.
+    CLEAR gs_locacao-valor_pago.
+    CLEAR gd_cod_locacao.
+
+    CALL FUNCTION 'POPUP_TO_INFORM'
+      EXPORTING
+        titel = 'DEVOLUÇÃO DE VEÍCULO'
+        txt1  = 'DEVOLUÇÃO EFETUADA'
+        txt2  = 'COM SUCESSO.'.
+  ELSE.
+    CALL FUNCTION 'POPUP_TO_INFORM'
+      EXPORTING
+        titel = 'ERRO'
+        txt1  = 'A LOCAÇÃO NÃO PODE SER ENCONTRADA.'
+        txt2  = 'DADOS INCORRETOS.'.
+  ENDIF.
+  CALL SCREEN 9000.
+ENDFORM.

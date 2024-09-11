@@ -1,0 +1,16 @@
+*&---------------------------------------------------------------------*
+*& VARIÁVEIS
+*&---------------------------------------------------------------------*
+DATA gs_cliente       TYPE zslv_cliente.
+DATA gs_veiculo       TYPE zslv_veiculo.
+DATA gs_locacao       TYPE zslv_locacao.
+DATA gd_cpf_cliente   TYPE zcpf_ed.
+DATA gd_placa_veiculo TYPE zplaca_veiculo_ed.
+DATA gd_dt_locacao    TYPE erdat.
+DATA gd_dt_devolucao  TYPE erdat.
+DATA gd_cod_locacao   TYPE zcod_locacao_ed.
+DATA gd_okcode        TYPE sy-ucomm.
+DATA gd_ORIGEM        TYPE sy-ucomm.
+DATA vg_alugado       TYPE flag.
+DATA vl_cpf           TYPE pbr99_cpf.
+DATA vl_placa         TYPE zplaca_veiculo_ed.

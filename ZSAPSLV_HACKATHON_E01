@@ -1,0 +1,67 @@
+*&---------------------------------------------------------------------*
+*&      Tela Inicial
+*&---------------------------------------------------------------------*
+MODULE user_command_9000 INPUT.
+
+  CASE gd_okcode.
+    WHEN 'NEWC'.
+      CLEAR gs_cliente.
+      CALL SCREEN 9001.
+    WHEN 'ALTC'.
+      CLEAR gs_cliente.
+      gd_origem = 'ALTC'.
+      CALL SCREEN 9002.
+    WHEN 'RELTC'.
+      SUBMIT zsapslv_hackathon_relcliente AND RETURN.
+    WHEN 'NEWV'.
+      CLEAR gs_veiculo-modelo_veiculo.
+      CLEAR gs_veiculo-ano_veiculo.
+      CLEAR gs_veiculo-tipo_veiculo.
+      CLEAR gs_veiculo-diaria.
+      gs_veiculo-status_veiculo = 'D'.
+      CALL SCREEN 9004.
+    WHEN 'ALTV'.
+      CLEAR gs_veiculo.
+      gd_origem = 'ALTV'.
+      CALL SCREEN 9005.
+    WHEN 'NEWL'.
+      CLEAR gs_locacao-cpf_cliente.
+      CLEAR gs_locacao-placa_veiculo.
+      CLEAR gs_locacao-dt_prev_dev.
+      SELECT cod_locacao UP TO 1 ROWS
+        INTO gs_locacao-cod_locacao
+        FROM zslv_locacao
+        ORDER BY cod_locacao DESCENDING.
+      ENDSELECT.
+      ADD 1 TO gs_locacao-cod_locacao.
+      gs_locacao-dt_locacao = sy-datum.
+      CALL SCREEN 9007.
+    WHEN 'DEVOL'.
+      CLEAR: gs_locacao,
+        gs_veiculo,
+        gs_cliente.
+      CALL SCREEN 9008.
+    WHEN 'CONSU'.
+      CLEAR: gs_locacao,
+       gs_veiculo,
+       gs_cliente.
+      CALL SCREEN 9009.
+    WHEN 'RELV'.
+      SUBMIT zsapslv_hackathon_relveiculo AND RETURN.
+    WHEN 'RELA'.
+      SUBMIT zsapslv_hackathon_relveiculo
+          WITH so_staus EQ 'A' AND RETURN.
+    WHEN 'RELD'.
+      SUBMIT zsapslv_hackathon_relveiculo
+        WITH so_staus EQ 'D' AND RETURN.
+    WHEN 'HIST'.
+      CALL TRANSACTION 'ZSLV000_HIST'.
+    WHEN 'RDEV'.
+      SUBMIT zsapslv_hackathon_reldevolucao AND RETURN.
+    WHEN 'RELL'.
+      SUBMIT zsapslv_hackathon_rellocacao AND RETURN.
+    WHEN 'SAIR'.
+      LEAVE PROGRAM.
+  ENDCASE.
+
+ENDMODULE.

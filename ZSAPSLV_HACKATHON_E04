@@ -1,0 +1,157 @@
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_9007  INPUT
+*&---------------------------------------------------------------------*
+*       Tela Cadastrar Locação
+*----------------------------------------------------------------------*
+MODULE user_command_9007 INPUT.
+
+  CASE gd_okcode.
+    WHEN 'SALVA'.
+      PERFORM salvar_locacao.
+    WHEN 'VOLTA'.
+      LEAVE TO SCREEN 9000.
+  ENDCASE.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*&      Module  M_CHECK_FIELD_L  INPUT
+*&---------------------------------------------------------------------*
+*       Buscando CPF e Placa do Veículo e verificando se
+*       veículo está disponível para locação
+*----------------------------------------------------------------------*
+MODULE m_check_field_l INPUT.
+
+  IF NOT gs_locacao-cpf_cliente IS INITIAL.
+    vl_cpf = gs_locacao-cpf_cliente.
+
+    CALL FUNCTION 'HR_BR_CHECK_CPF_FORMAT'
+      EXPORTING
+        cpf_number               = vl_cpf
+      EXCEPTIONS
+        cpf_format_not_supported = 1
+        cpf_check_digit          = 2
+        OTHERS                   = 3.
+
+    IF sy-subrc <> 0.
+      CLEAR gs_locacao-cpf_cliente.
+      MESSAGE e001(00) WITH 'ERRO: CPF informado ' vl_cpf ' errado'.
+      CLEAR gs_cliente.
+    ELSE.
+
+      SELECT nome_cliente
+             telefone_cliente
+             email_cliente UP TO 1 ROWS
+        INTO (gs_cliente-nome_cliente,
+              gs_cliente-telefone_cliente,
+              gs_cliente-email_cliente)
+        FROM zslv_cliente
+        WHERE cpf_cliente = gs_locacao-cpf_cliente.
+      ENDSELECT.
+    ENDIF.
+  ENDIF.
+
+  IF NOT gs_locacao-placa_veiculo IS INITIAL.
+    IF gs_locacao-placa_veiculo+0(3) CN sy-abcde.
+      SET CURSOR FIELD 'GS_LOCACAO-PLACA_VEICULO'.
+      MESSAGE e001(00) WITH 'ERRO: A placa ' gs_locacao-placa_veiculo ' está errada'.
+    ENDIF.
+    IF gs_locacao-placa_veiculo+3(4) CS '0123456789'.
+    ELSE.
+      IF gs_locacao-placa_veiculo+3(1) CN '0123456789'.
+        SET CURSOR FIELD 'GS_LOCACAO-PLACA_VEICULO'.
+        MESSAGE e001(00) WITH 'ERRO: A placa ' gs_locacao-placa_veiculo ' está errada'.
+
+      ELSE.
+        IF gs_locacao-placa_veiculo+4(1) CS sy-abcde.
+          IF gs_locacao-placa_veiculo+5(2) CN '0123456789'.
+            SET CURSOR FIELD 'GS_LOCACAO-PLACA_VEICULO'.
+            MESSAGE e001(00) WITH 'ERRO: A placa ' gs_locacao-placa_veiculo ' está errada'.
+          ENDIF.
+        ELSE.
+          IF gs_locacao-placa_veiculo+5(2) CN '0123456789'.
+            SET CURSOR FIELD 'GS_LOCACAO-PLACA_VEICULO'.
+            MESSAGE e001(00) WITH 'ERRO: A placa ' gs_locacao-placa_veiculo ' está errada'.
+          ENDIF.
+        ENDIF.
+      ENDIF.
+    ENDIF.
+
+    CLEAR gs_veiculo.
+    SELECT modelo_veiculo
+           ano_veiculo
+           tipo_veiculo
+           diaria UP TO 1 ROWS
+      INTO (gs_VEICULO-modelo_veiculo,
+            gs_VEICULO-ano_veiculo,
+            gs_VEICULO-tipo_veiculo,
+            gs_veiculo-diaria)
+      FROM zslv_VEICULO
+      WHERE placa_veiculo = gs_locacao-placa_veiculo
+        AND status_veiculo = 'D'.
+    ENDSELECT.
+    IF sy-subrc <> 0.
+      SET CURSOR FIELD 'GS_LOCACAO-PLACA_VEICULO'.
+      MESSAGE e001(00) WITH 'ERRO: Veículo informado não disponível'.
+    ENDIF.
+  ENDIF.
+  IF NOT gs_locacao-dt_prev_dev IS INITIAL.
+    gs_locacao-valor_pago = ( gs_locacao-dt_prev_dev - gs_locacao-dt_locacao ) * gs_veiculo-diaria.
+  ENDIF.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_9008  INPUT
+*&---------------------------------------------------------------------*
+*       Tela Devolução do Veículo
+*----------------------------------------------------------------------*
+MODULE user_command_9008 INPUT.
+  CASE gd_okcode.
+    WHEN 'VDEV'.
+      PERFORM devolucao.
+    WHEN 'VOLTA'.
+      LEAVE TO SCREEN 9000.
+  ENDCASE.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module CARREGAR_TELA OUTPUT
+*&---------------------------------------------------------------------*
+*& Carregamento da Tela Devolução
+*&---------------------------------------------------------------------*
+MODULE carregar_tela OUTPUT.
+
+  IF NOT gs_locacao-cod_locacao IS INITIAL.
+    SELECT * UP TO 1 ROWS
+      INTO CORRESPONDING FIELDS OF gs_locacao
+      FROM zslv_locacao
+      WHERE cod_locacao = gs_locacao-cod_locacao.
+    ENDSELECT.
+    IF sy-subrc = 0.
+      gs_locacao-dt_devolucao = sy-datum.
+      SELECT nome_cliente
+             telefone_cliente
+             email_cliente UP TO 1 ROWS
+      INTO (gs_cliente-nome_cliente,
+            gs_cliente-telefone_cliente,
+            gs_cliente-email_cliente)
+      FROM zslv_cliente
+      WHERE cpf_cliente = gs_locacao-cpf_cliente.
+      ENDSELECT.
+
+      SELECT modelo_veiculo
+             ano_veiculo
+             tipo_veiculo
+             diaria UP TO 1 ROWS
+      INTO (gs_veiculo-modelo_veiculo,
+            gs_veiculo-ano_veiculo,
+            gs_veiculo-tipo_veiculo,
+            gs_veiculo-diaria)
+      FROM zslv_veiculo
+      WHERE placa_veiculo = gs_locacao-placa_veiculo.
+      ENDSELECT.
+
+      IF ( gs_locacao-dt_devolucao - gs_locacao-dt_prev_dev ) > 0.
+        gs_locacao-multa = gs_veiculo-diaria * ( gs_locacao-dt_devolucao - gs_locacao-dt_prev_dev ).
+        gs_locacao-total_pago = ( gs_locacao-valor_pago + gs_locacao-multa ).
+    ENDIF.
+        gs_locacao-total_pago = gs_locacao-valor_pago + gs_locacao-multa.
+  ENDIF.
+ ENDIF.
+ENDMODULE.

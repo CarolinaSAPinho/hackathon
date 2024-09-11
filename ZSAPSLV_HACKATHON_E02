@@ -1,0 +1,107 @@
+*----------------------------------------------------------------------*
+*      MODULE user_command_9001 INPUT.
+*----------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*&      Tela Novo Cliente
+*&---------------------------------------------------------------------*
+MODULE user_command_9001 INPUT.
+
+  CASE gd_okcode.
+    WHEN 'SALVA'.
+      IF gd_origem = 'ALTC'.
+        PERFORM salvar_alteracao_cliente.
+      ELSE.
+        PERFORM salvar_cliente.
+      ENDIF.
+    WHEN 'VOLTA'.
+      CLEAR gd_origem.
+      LEAVE TO SCREEN 9000.
+  ENDCASE.
+
+ENDMODULE.
+*----------------------------------------------------------------------*
+*      MODULE user_command_9002 INPUT.
+*----------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*       Tela Consultar e Alterar Cliente
+*----------------------------------------------------------------------*
+MODULE user_command_9002 INPUT.
+
+  CASE gd_okcode.
+    WHEN 'PROCC'.
+      PERFORM consultar_cliente.
+    WHEN 'PROCA'.
+      PERFORM alterar_cliente.
+    WHEN 'VOLTA'.
+      CALL SCREEN 9000.
+  ENDCASE.
+
+ENDMODULE.
+*----------------------------------------------------------------------*
+*      MODULE user_command_9003 INPUT.
+*----------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*      Tela Consultar Cliente
+*----------------------------------------------------------------------*
+MODULE user_command_9003 INPUT.
+  CASE gd_okcode.
+    WHEN 'VOLTA'.
+      CALL SCREEN 9002.
+  ENDCASE.
+
+ENDMODULE.
+
+*&---------------------------------------------------------------------*
+*&      Module  M_CHECK_CAMPOS  INPUT
+*&---------------------------------------------------------------------*
+*       Validação do CPF e verificação para não
+*       cadastrar CPF já cadastrado
+*----------------------------------------------------------------------*
+MODULE m_check_campos INPUT.
+
+  IF NOT gs_cliente-cpf_cliente IS INITIAL.
+    IF gd_origem <> 'ALTC'.
+      vl_cpf = gs_cliente-cpf_cliente.
+
+      CALL FUNCTION 'HR_BR_CHECK_CPF_FORMAT'
+        EXPORTING
+          cpf_number               = vl_cpf
+        EXCEPTIONS
+          cpf_format_not_supported = 1
+          cpf_check_digit          = 2
+          OTHERS                   = 3.
+
+      IF sy-subrc <> 0.
+        CLEAR gs_cliente-cpf_cliente.
+        MESSAGE e001(00) WITH 'ERRO: CPF informado ' vl_cpf ' errado'.
+
+      ELSE.
+        SELECT cpf_cliente UP TO 1 ROWS
+          INTO @DATA(cpf)
+          FROM zslv_cliente
+          WHERE cpf_cliente = @gs_cliente-cpf_cliente.
+        ENDSELECT.
+        IF sy-subrc = 0.
+          CLEAR gs_cliente-cpf_cliente.
+          MESSAGE e001(00) WITH 'ERRO: CPF ' vl_cpf ' já cadastrado'.
+        ENDIF.
+      ENDIF.
+    ENDIF.
+  ENDIF.
+ENDMODULE.
+
+*&---------------------------------------------------------------------*
+*& Module M_CTRL_TELA_9001 OUTPUT
+*&---------------------------------------------------------------------*
+*& Não permite alteração do CPF
+*&---------------------------------------------------------------------*
+MODULE m_ctrl_tela_9001 OUTPUT.
+  IF sy-ucomm = 'PROCA'.
+    LOOP AT SCREEN.
+      IF screen-name = 'GS_CLIENTE-CPF_CLIENTE'.
+        screen-input = 0.
+        MODIFY SCREEN.
+      ENDIF.
+    ENDLOOP.
+  ENDIF.
+ENDMODULE.

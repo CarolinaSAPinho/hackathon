@@ -1,0 +1,145 @@
+*&---------------------------------------------------------------------*
+*& Report ZSAPSLV_HACKATHON_RELDEVOLUCAO
+*&---------------------------------------------------------------------*
+*& Relatório de Devoluções de Veículos
+*&---------------------------------------------------------------------*
+REPORT zsapslv_hackathon_reldevolucao.
+
+TABLES : zslv_locacao.
+
+TYPE-POOLS: slis.
+
+DATA : st_ZSLV_LOCACAO TYPE zslv_locacao.
+DATA : it_ZSLV_LOCACAO TYPE TABLE OF zslv_locacao.
+
+DATA : it_fieldcat TYPE slis_t_fieldcat_alv,
+       st_fieldcat TYPE slis_fieldcat_alv.
+
+SELECTION-SCREEN BEGIN OF BLOCK b1.
+  SELECT-OPTIONS :
+
+  so_dtdev FOR  zslv_locacao-dt_devolucao NO INTERVALS NO-EXTENSION.
+
+SELECTION-SCREEN END OF BLOCK b1.
+
+START-OF-SELECTION.
+
+  PERFORM : z_feed_table,
+            z_fieldcat,
+            z_alv.
+
+FORM z_feed_table .
+  DATA: vl_datavazia TYPE sy-datum.
+
+  so_dtdev-sign = 'E'.
+  so_dtdev-option = 'EQ'.
+  so_dtdev-low    = vl_datavazia.
+
+  APPEND so_dtdev.
+
+  CLEAR it_ZSLV_LOCACAO.
+  SELECT *
+  INTO TABLE it_ZSLV_LOCACAO
+     FROM  zslv_locacao
+     WHERE dt_devolucao IN so_dtdev.
+
+ENDFORM.
+
+FORM z_fieldcat .
+
+  PERFORM z_feed_fieldcat USING:
+   'COD_LOCACAO' 'Locação'                ' '    ' '    1        ,
+   'DT_LOCACAO' 'Data da Locação'         ' '    ' '    2        ,
+   'DT_DEVOLUCAO' 'Data da Devolução'     ' '    ' '    3        ,
+   'CPF_CLIENTE' 'CPF do Cliente'         ' '    ' '    4        ,
+   'PLACA_VEICULO ' 'Placa do Veículo'    ' '    ' '    5        ,
+   'MULTA ' 'Multa'                       ' '    ' '    6        ,
+   'VALOR_PAGO' 'Valor Pago'              ' '    ' '    7        ,
+   'TOTAL PAGO ' 'Total Pago'             ' '    ' '    8        .
+
+ENDFORM.                    " Z_FIELDCAT
+
+*&---------------------------------------------------------------------
+*&      Form  Z_FEED_FIELDCAT
+*&---------------------------------------------------------------------
+FORM z_feed_fieldcat  USING    fieldname
+                               seltext_m
+                               checkbox
+                               edit
+                               col_pos.
+
+  st_fieldcat-fieldname   = fieldname.      " Nome do campo
+  st_fieldcat-seltext_m   = seltext_m.      " texto do campo
+  st_fieldcat-checkbox    = checkbox.       " se o campo é do tipo CheckBox
+  st_fieldcat-edit        = edit.           " se o campo pode ser editavel
+  st_fieldcat-col_pos     = col_pos.        "Em que posição fica a coluna
+  " Coloca a estrutura alimentada na Tabela.
+  APPEND st_fieldcat TO it_fieldcat.
+  " Limpa a estrutura e volta pra poxima linha do form.
+  CLEAR  st_fieldcat.
+ENDFORM.                    " Z_FEED_FIELDCAT
+
+*&---------------------------------------------------------------------
+*&      Form  Z_ALV
+*&---------------------------------------------------------------------
+FORM z_alv .
+  DATA: gs_layout TYPE slis_layout_alv.
+
+  gs_layout-window_titlebar = 'Relatório de Devoluções de Veículos'.
+
+  CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
+    EXPORTING
+*     I_INTERFACE_CHECK  = ' '
+*     I_BYPASSING_BUFFER = ' '
+*     I_BUFFER_ACTIVE    = ' '
+      i_callback_program = sy-repid    " Nome do programa
+*     i_callback_pf_status_set          = ' '
+*     i_callback_user_command           = ' '
+*     I_CALLBACK_TOP_OF_PAGE            = ' '
+*     I_CALLBACK_HTML_TOP_OF_PAGE       = ' '
+*     I_CALLBACK_HTML_END_OF_LIST       = ' '
+*     I_STRUCTURE_NAME   =
+*     I_BACKGROUND_ID    = ' '
+*     I_GRID_TITLE       =
+*     I_GRID_SETTINGS    =
+      is_layout          = gs_layout
+      it_fieldcat        = it_fieldcat " catalogo de campos
+*     IT_EXCLUDING       =
+*     IT_SPECIAL_GROUPS  =
+*     IT_SORT            =
+*     IT_FILTER          =
+*     IS_SEL_HIDE        =
+*     I_DEFAULT          = 'X'
+*     i_save             = 'X'
+*     IS_VARIANT         =
+*     IT_EVENTS          =
+*     IT_EVENT_EXIT      =
+*     IS_PRINT           =
+*     IS_REPREP_ID       =
+*     I_SCREEN_START_COLUMN             = 0
+*     I_SCREEN_START_LINE               = 0
+*     I_SCREEN_END_COLUMN               = 0
+*     I_SCREEN_END_LINE  = 0
+*     I_HTML_HEIGHT_TOP  = 0
+*     I_HTML_HEIGHT_END  = 0
+*     IT_ALV_GRAPHICS    =
+*     IT_HYPERLINK       =
+*     IT_ADD_FIELDCAT    =
+*     IT_EXCEPT_QINFO    =
+*     IR_SALV_FULLSCREEN_ADAPTER        =
+* IMPORTING
+*     E_EXIT_CAUSED_BY_CALLER           =
+*     ES_EXIT_CAUSED_BY_USER            =
+    TABLES
+      t_outtab           = it_ZSLV_LOCACAO   " Tabela com os dados
+    EXCEPTIONS
+      program_error      = 1
+      OTHERS             = 2.
+  IF sy-subrc <> 0.
+    MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+            WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+  ENDIF.
+
+ENDFORM.
+
+END-OF-SELECTION.
